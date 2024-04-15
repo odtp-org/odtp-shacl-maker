@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "odtp-shacl-maker"
+version = "0.0.1"
+description = "SHACL generator for odtp compatible components"
+authors = ["caviri <carlosvivarrios@gmail.com>"]
+license = "AGPL 3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11"
+pyshacl = "0.25.0"
+typer = "0.12.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
