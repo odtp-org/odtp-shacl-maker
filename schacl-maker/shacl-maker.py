@@ -1,4 +1,5 @@
 from typing import Dict, Set, List
+import typer 
 
 import pandas as pd
 import csv
@@ -158,7 +159,11 @@ def main(input_filename: str) -> None:
     final_graph.serialize(destination="finalShapes.ttl", format="turtle")
     os.remove("shapeswithoutand.ttl")
 
+app = typer.Typer()
+@app.command()
+def make_shacl(csv_file: str):
+    # Call your function here and pass the path to csv_file as input
+    main(csv_file)
 
 if __name__ == "__main__":
-    input_filename = input("Enter the relative path to the file containing structured information: ")
-    main(input_filename)
+    app()
