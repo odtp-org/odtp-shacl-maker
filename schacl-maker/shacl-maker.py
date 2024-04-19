@@ -1,5 +1,5 @@
 from typing import Dict, Set, List
-import typer 
+import typer
 
 import pandas as pd
 import csv
@@ -67,12 +67,28 @@ def read_and_process_file(filename: str) -> Dict[str, Set[str]]:
                 files_variables[file_relative_path] = set()
             files_variables[file_relative_path].add(variable_name)
 
-            create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type)
+            create_triples(
+                file_relative_path,
+                file_description,
+                variable_name,
+                variable_alternative_labels,
+                variable_description,
+                variable_value_example,
+                variable_type,
+            )
 
     return files_variables
 
 
-def create_triples(file_relative_path: str, file_description: str, variable_name: str, variable_alternative_labels: str, variable_description: str, variable_value_example: str, variable_type: str) -> None:
+def create_triples(
+    file_relative_path: str,
+    file_description: str,
+    variable_name: str,
+    variable_alternative_labels: str,
+    variable_description: str,
+    variable_value_example: str,
+    variable_type: str,
+) -> None:
     """Creates triples for file and variable metadata.
 
     Parameters
@@ -95,21 +111,31 @@ def create_triples(file_relative_path: str, file_description: str, variable_name
     file_uri = ODTP[quote(file_relative_path)]
 
     variable_uri = URIRef(ODTP + variable_name + "Shape")
-    
+
     # nodeshapes (for restricting files)
     shapes_graph.add((file_uri, RDF.type, SH.NodeShape))
     shapes_graph.add((file_uri, RDFS.subClassOf, ODTP.InputFile))
     shapes_graph.add((file_uri, SH.targetNode, file_uri))
-    shapes_graph.add((file_uri, SH.description, Literal(file_description, datatype=XSD.string)))
-    
+    shapes_graph.add(
+        (file_uri, SH.description, Literal(file_description, datatype=XSD.string))
+    )
+
     # propertyshapes (for restricting variables)
     shapes_graph.add((variable_uri, RDF.type, SH.PropertyShape))
     shapes_graph.add((variable_uri, SH.datatype, URIRef(variable_type)))
-    shapes_graph.add((variable_uri, SH.description, Literal(variable_description, datatype=XSD.string)))
+    shapes_graph.add(
+        (
+            variable_uri,
+            SH.description,
+            Literal(variable_description, datatype=XSD.string),
+        )
+    )
     shapes_graph.add((variable_uri, SH.name, Literal(variable_name)))
     shapes_graph.add((variable_uri, SH.path, URIRef(ODTP + variable_name)))
     shapes_graph.add((variable_uri, SKOS.example, Literal(variable_value_example)))
-    shapes_graph.add((variable_uri, SKOS.altLabel, Literal(variable_alternative_labels)))
+    shapes_graph.add(
+        (variable_uri, SKOS.altLabel, Literal(variable_alternative_labels))
+    )
 
 
 def and_builder(variables: Dict[str, Set[str]]) -> List[str]:
@@ -159,11 +185,15 @@ def main(input_filename: str) -> None:
     final_graph.serialize(destination="finalShapes.ttl", format="turtle")
     os.remove("shapeswithoutand.ttl")
 
+
 app = typer.Typer()
+
+
 @app.command()
 def make_shacl(csv_file: str):
     # Call your function here and pass the path to csv_file as input
     main(csv_file)
+
 
 if __name__ == "__main__":
     app()
