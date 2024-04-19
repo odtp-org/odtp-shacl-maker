@@ -1,7 +1,7 @@
 # odtp-shacl-maker
 SHACL schema maker for odtp compatible components.
 
-SHACL Maker is a command-line tool written in Python that uses the pyshacl and typer libraries to convert CSV files into SHACL (Shapes Constraint Language) graphs.
+SHACL Maker is a command-line tool written in Python that uses the rdflib and typer libraries to convert CSV files into SHACL (Shapes Constraint Language) graphs.
 
 ## Installation
 This project uses Poetry for dependency management. If you haven't installed Poetry yet, you can do so by following the instructions on their official documentation.
