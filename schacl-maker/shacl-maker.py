@@ -1,6 +1,4 @@
-from typing import Dict, Set, List
 import typer 
-
 import pandas as pd
 import csv
 from rdflib import (
@@ -17,6 +15,48 @@ import os
 import yaml
 from urllib.parse import quote
 
+"""
+Module Name: SHACL-Maker
+Author: [Your Name Here]
+Description: This module provides functionality to generate RDF (Resource Description Framework) data using SHACL (Shapes Constraint Language) shapes based on structured information provided in CSV or YAML format.
+
+Dependencies:
+- typer: For creating command-line interfaces in Python.
+- pandas: For data manipulation and analysis.
+- rdflib: For working with RDF data.
+- csv: For reading CSV files.
+- os: For interacting with the operating system.
+- yaml: For reading YAML files.
+- urllib: For URL encoding.
+- Set: For working with sets.
+
+Usage:
+This module can be used to generate RDF data by providing structured information in a CSV or YAML file format. It defines the following functions:
+
+1. read_and_process_file(filename: str) -> dict[str, Set[str]]:
+   Reads the CSV or YAML file and processes the data, returning a dictionary containing file paths as keys and sets of variable names as values.
+
+2. create_triples(file_relative_path: str, file_description: str, variable_name: str, variable_alternative_labels: str, variable_description: str, variable_value_example: str, variable_type: str) -> None:
+   Creates triples for file and variable metadata based on the provided parameters.
+
+3. and_builder(variables: dict[str, set[str]]) -> list[str]:
+   Constructs AND statements for the property shapes based on the provided dictionary of variables.
+
+4. main(input_filename: str) -> None:
+   Orchestrates the RDF generation process, taking the relative path to the input file containing structured information (either CSV or YAML).
+
+Command-Line Interface:
+This module also defines a command-line interface using Typer. It provides a command 'make_shacl' to generate SHACL shapes based on structured data provided in a CSV file.
+
+Example Usage:
+To generate SHACL shapes, run the module with the 'make_shacl' command followed by the path to the CSV file:
+    python RDFGenerator.py make_shacl example_data.csv
+
+Note: Ensure that all dependencies are installed before running the module.
+
+For more details, refer to the function docstrings and the module implementation.
+"""
+
 shapes_graph = Graph()
 
 # Prefixes used throughout the script
@@ -30,7 +70,7 @@ SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 shapes_graph.bind("skos", SKOS)
 
 
-def read_and_process_file(filename: str) -> Dict[str, Set[str]]:
+def read_and_process_file(filename: str) -> dict[str, set[str]]:
     """Reads the CSV or YAML file and processes the data.
 
     Parameters
@@ -112,18 +152,18 @@ def create_triples(file_relative_path: str, file_description: str, variable_name
     shapes_graph.add((variable_uri, SKOS.altLabel, Literal(variable_alternative_labels)))
 
 
-def and_builder(variables: Dict[str, Set[str]]) -> List[str]:
+def and_builder(variables: dict[str, set[str]]) -> list[str]:
     """Constructs AND statements for the property shapes.
 
     Parameters
     ----------
     variables : Dict[str, Set[str]]
-        Dictionary containing file paths as keys and sets of variable names as values.
+        Mapping from file paths to sets of variable names
 
     Returns
     -------
     List[str]
-        List strings containing ttl syntax nodeshapes with an sh:and.
+        template for ttl syntax nodeshapes with an sh:and to be filled.
     """
     propstringlist = []
     for var in variables:
