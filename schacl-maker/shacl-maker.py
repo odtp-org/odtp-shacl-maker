@@ -82,33 +82,52 @@ def convert_to_variables(filename: str) -> dict[str, set[str]]:
     -------
     Dict[str, Set[str]]
         A dictionary containing file paths as keys and sets of variable names as values.
-    """
-    #add an if to look for "odtp.yml" specifically, if so, rest of script same, else, use a csv file
+    """    
     with open(filename, "r") as file:
         file_extension = os.path.splitext(file.name)[1]
+        
         if file_extension == ".csv":
             reader = csv.DictReader(file)
+            files_variables = {}
+            for row in reader:
+                file_relative_path = row["file_relative_path"]
+                file_description = row["file_description"]
+                variable_name = row["variable_name"]
+                variable_alternative_labels = row["variable_alternative_labels"]
+                variable_description = row["variable_description"]
+                variable_value_example = row["variable_value_example"]
+                variable_type = row["variable_type"]
+
+                if file_relative_path not in files_variables:
+                    files_variables[file_relative_path] = set()
+                files_variables[file_relative_path].add(variable_name)
+
+                create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type)
+        
         elif file_extension == ".yml":
-            reader = yaml.safe_load(file)
+            data = yaml.safe_load(file)
+            files_variables = {}
+            data_input = data.get("data-input", [])
+            for entry in data_input:
+                file_relative_path = entry["file_relative_path"]
+                file_description = entry["file_description"]
+                
+                if file_relative_path not in files_variables:
+                    files_variables[file_relative_path] = set()
+                
+                for variable in entry.get("variables", []):
+                    variable_name = variable["variable_name"]
+                    variable_alternative_labels = variable["variable_alternative_labels"]
+                    variable_description = variable["variable_description"]
+                    variable_value_example = variable["variable_value_example"]
+                    variable_type = variable["variable_type"]
+                    
+                    files_variables[file_relative_path].add(variable_name)
+
+                    create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type)
+
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
-
-        files_variables = {}
-        #nested loop to handle both csv and yml files, so we add nesting to yml files
-        for row in reader:
-            file_relative_path = row["file_relative_path"]
-            file_description = row["file_description"]
-            variable_name = row["variable_name"]
-            variable_alternative_labels = row["variable_alternative_labels"]
-            variable_description = row["variable_description"]
-            variable_value_example = row["variable_value_example"]
-            variable_type = row["variable_type"]
-
-            if file_relative_path not in files_variables:
-                files_variables[file_relative_path] = set()
-            files_variables[file_relative_path].add(variable_name)
-
-            create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type)
 
     return files_variables
 
@@ -201,11 +220,9 @@ def main(input_filename: str) -> None:
     final_graph.serialize(destination="finalShapes.ttl", format="turtle")
     os.remove("shapeswithoutand.ttl")
 
-#introduce 2 paramters rather than one, 1st being input file, second being output file
 app = typer.Typer()
 @app.command()
 def make_shacl(csv_file: str):
-    # Call your function here and pass the path to csv_file as input
     main(csv_file)
 
 if __name__ == "__main__":
