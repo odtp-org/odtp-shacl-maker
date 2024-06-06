@@ -33,7 +33,7 @@ Dependencies:
 Usage:
 This module can be used to generate RDF data by providing structured information in a CSV or YAML file format. It defines the following functions:
 
-1. read_and_process_file(filename: str) -> dict[str, Set[str]]:
+1. convert_to_variables(filename: str) -> dict[str, Set[str]]:
    Reads the CSV or YAML file and processes the data, returning a dictionary containing file paths as keys and sets of variable names as values.
 
 2. create_triples(file_relative_path: str, file_description: str, variable_name: str, variable_alternative_labels: str, variable_description: str, variable_value_example: str, variable_type: str) -> None:
@@ -70,8 +70,8 @@ SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 shapes_graph.bind("skos", SKOS)
 
 
-def read_and_process_file(filename: str) -> dict[str, set[str]]:
-    """Reads the CSV or YAML file and processes the data.
+def convert_to_variables(filename: str) -> dict[str, set[str]]:
+    """Takes a CSV or YAML structured file containing metadata about the required inputs of a ODTP component and converts each row/entry into variables to be used by create_triples function.
 
     Parameters
     ----------
@@ -83,6 +83,7 @@ def read_and_process_file(filename: str) -> dict[str, set[str]]:
     Dict[str, Set[str]]
         A dictionary containing file paths as keys and sets of variable names as values.
     """
+    #add an if to look for "odtp.yml" specifically, if so, rest of script same, else, use a csv file
     with open(filename, "r") as file:
         file_extension = os.path.splitext(file.name)[1]
         if file_extension == ".csv":
@@ -93,7 +94,7 @@ def read_and_process_file(filename: str) -> dict[str, set[str]]:
             raise ValueError(f"Unsupported file type: {file_extension}")
 
         files_variables = {}
-
+        #nested loop to handle both csv and yml files, so we add nesting to yml files
         for row in reader:
             file_relative_path = row["file_relative_path"]
             file_description = row["file_description"]
@@ -165,19 +166,19 @@ def and_builder(variables: dict[str, set[str]]) -> list[str]:
     List[str]
         template for ttl syntax nodeshapes with an sh:and to be filled.
     """
-    propstringlist = []
+    prop_string_list = []
     for var in variables:
-        propstring = ""
-        andstring = ""
+        prop_string = ""
+        and_string = ""
         file_uri = URIRef(ODTP + var)
 
         for item in variables[var]:
-            blanknodeitem = f"[sh:path <https://w3id.org/okn/o/sd#hasParameter> ; sh:hasValue <https://odtp.example.org/components/data/{item}>]"
-            andstring += f" {blanknodeitem}"
+            blank_node_item = f"[sh:path <https://w3id.org/okn/o/sd#hasParameter> ; sh:hasValue <https://odtp.example.org/components/data/{item}>]"
+            and_string += f" {blank_node_item}"
 
-        propstring = f"<{file_uri}> sh:and ({andstring}) ."
-        propstringlist.append(propstring)
-    return propstringlist
+        prop_string = f"<{file_uri}> sh:and ({and_string}) ."
+        prop_string_list.append(prop_string)
+    return prop_string_list
 
 
 def main(input_filename: str) -> None:
@@ -188,17 +189,19 @@ def main(input_filename: str) -> None:
     input_filename : str
         The relative path to the file containing structured information (either csv or yml).
     """
-    files_variables = read_and_process_file(input_filename)
+    files_variables = convert_to_variables(input_filename)
     shapes_graph.serialize(destination="shapeswithoutand.ttl", format="turtle")
     with open("shapeswithoutand.ttl", "a") as file:
-        for andstatement in and_builder(files_variables):
-            file.write(andstatement + "\n")
+        for and_statement in and_builder(files_variables):
+            file.write(and_statement + "\n")
 
     final_graph = Graph()
     final_graph.parse("shapeswithoutand.ttl", format="turtle")
+    #change this to use the name of the file that is fed to the script, (either input or output)
     final_graph.serialize(destination="finalShapes.ttl", format="turtle")
     os.remove("shapeswithoutand.ttl")
 
+#introduce 2 paramters rather than one, 1st being input file, second being output file
 app = typer.Typer()
 @app.command()
 def make_shacl(csv_file: str):
