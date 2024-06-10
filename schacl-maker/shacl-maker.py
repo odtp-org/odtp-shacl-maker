@@ -58,17 +58,20 @@ Note: Ensure that all dependencies are installed before running the module.
 For more details, refer to the function docstrings and the module implementation.
 """
 
-shapes_graph = Graph()
-
+input_shapes_graph = Graph()
+output_shapes_graph = Graph()
 # Prefixes used throughout the script
 ODTP = Namespace("https://odtp.example.org/components/data/")
-shapes_graph.bind("odtp", ODTP)
+input_shapes_graph.bind("odtp", ODTP)
+output_shapes_graph.bind("odtp", ODTP)
 
 SD = Namespace("https://w3id.org/okn/o/sd#")
-shapes_graph.bind("SD", SD)
+input_shapes_graph.bind("SD", SD)
+output_shapes_graph.bind("SD", SD)
 
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-shapes_graph.bind("skos", SKOS)
+input_shapes_graph.bind("skos", SKOS)
+output_shapes_graph.bind("skos", SKOS)
 
 def figure_out_if_input_or_output(filename: str = "File") -> str:
     """Determines if the file is an input or output file based on the file path. 
@@ -91,7 +94,7 @@ def figure_out_if_input_or_output(filename: str = "File") -> str:
     else:
         return "File"
     
-def convert_to_variables(filename: str) -> dict[str, set[str]]:
+def convert_to_variables(filename: str, filetype:str ) -> dict[str, set[str]]:
     """Takes a CSV or YAML structured file containing metadata about the required inputs of a ODTP component and converts each row/entry into variables to be used by create_triples function.
 
     Parameters
@@ -108,6 +111,10 @@ def convert_to_variables(filename: str) -> dict[str, set[str]]:
         file_extension = os.path.splitext(file.name)[1]
         
         if file_extension == ".csv":
+            if filetype == "input":
+                shapes_graph = input_shapes_graph
+            else:
+                shapes_graph = output_shapes_graph
             reader = csv.DictReader(file)
             files_variables = {}
             for row in reader:
@@ -123,14 +130,17 @@ def convert_to_variables(filename: str) -> dict[str, set[str]]:
                     files_variables[file_relative_path] = set()
                 files_variables[file_relative_path].add(variable_name)
 
-                create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type)
+                create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type, shapes_graph)
         
-        elif file_extension == ".yml":
+        elif file_extension == ".yml": 
             data = yaml.safe_load(file)
             files_variables = {}
-            data_input = data.get("data-input", [])
-            data_output = data.get("data-output", [])
-            for entry in itertools.chain(data_input, data_output):
+            data_get = data.get("data-" + filetype, [])
+            if filetype == "input":
+                shapes_graph = input_shapes_graph
+            else:
+                shapes_graph = output_shapes_graph
+            for entry in data_get:
                 file_relative_path = entry["file_relative_path"]
                 file_description = entry["file_description"]
                 
@@ -146,15 +156,14 @@ def convert_to_variables(filename: str) -> dict[str, set[str]]:
                     
                     files_variables[file_relative_path].add(variable_name)
 
-                    create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type)
-
+                    create_triples(file_relative_path, file_description, variable_name, variable_alternative_labels, variable_description, variable_value_example, variable_type, shapes_graph)
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
 
     return files_variables
 
 
-def create_triples(file_relative_path: str, file_description: str, variable_name: str, variable_alternative_labels: str, variable_description: str, variable_value_example: str, variable_type: str) -> None:
+def create_triples(file_relative_path: str, file_description: str, variable_name: str, variable_alternative_labels: str, variable_description: str, variable_value_example: str, variable_type: str, shapes_graph : Graph) -> None:
     """Creates triples for file and variable metadata.
 
     Parameters
@@ -233,27 +242,39 @@ def main(input_folder: str) -> None:
     input_folder : str
         The path to the folder containing the structured information files (either csv or yml).
     """
-    files_variables = {}
+    input_files_variables = {}
+    output_files_variables = {}
     for filename in os.listdir(input_folder):
-        if filename.endswith(".csv") or filename.endswith(".yml"):
-            file_path = os.path.join(input_folder, filename)
-            file_variables = convert_to_variables(file_path)
-            files_variables.update(file_variables)
+        file_path = os.path.join(input_folder, filename)
+        if filename == "input.csv":
+            input_file_variables = convert_to_variables(file_path, "input")
+            input_files_variables.update(input_file_variables)
+        elif filename == "output.csv":
+            output_file_variables = convert_to_variables(file_path, "output")
+            output_files_variables.update(output_file_variables)
+        if filename.endswith(".yml"):
+            input_file_variables = convert_to_variables(file_path, "input")
+            input_files_variables.update(input_file_variables)
+        if filename.endswith(".yml"):
+            output_file_variables = convert_to_variables(file_path, "output")
+            output_files_variables.update(output_file_variables)
 
-    shapes_graph.serialize(destination="shapeswithoutand.ttl", format="turtle")
-    with open("shapeswithoutand.ttl", "a") as file:
-        for and_statement in and_builder(files_variables):
-            file.write(and_statement + "\n")
+    if input_files_variables:
+        input_shapes_graph.serialize(destination="input.ttl", format="turtle")
+        with open("input.ttl", "a") as file:
+            for and_statement in and_builder(input_files_variables):
+                file.write(and_statement + "\n")
 
-    final_graph = Graph()
-    final_graph.parse("shapeswithoutand.ttl", format="turtle")
-    final_graph.serialize(destination="final_shapes.ttl", format="turtle")
-    os.remove("shapeswithoutand.ttl")
+    if output_files_variables:
+        output_shapes_graph.serialize(destination="output.ttl", format="turtle")
+        with open("output.ttl", "a") as file:
+            for and_statement in and_builder(output_files_variables):
+                file.write(and_statement + "\n")
 
 app = typer.Typer()
 @app.command()
-def make_shacl(csv_file: str):
-    main(csv_file)
+def make_shacl(input_folder: str):
+    main(input_folder)
 
 if __name__ == "__main__":
     app()
