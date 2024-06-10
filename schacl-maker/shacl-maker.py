@@ -252,12 +252,13 @@ def main(input_folder: str) -> None:
         elif filename == "output.csv":
             output_file_variables = convert_to_variables(file_path, "output")
             output_files_variables.update(output_file_variables)
-        if filename.endswith(".yml"):
+        elif filename.endswith(".yml"):
             input_file_variables = convert_to_variables(file_path, "input")
             input_files_variables.update(input_file_variables)
-        if filename.endswith(".yml"):
             output_file_variables = convert_to_variables(file_path, "output")
             output_files_variables.update(output_file_variables)
+        else:
+            print(f"Unsupported file: {filename}")
 
     if input_files_variables:
         input_shapes_graph.serialize(destination="input.ttl", format="turtle")
