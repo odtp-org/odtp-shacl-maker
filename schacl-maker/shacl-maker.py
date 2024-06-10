@@ -225,15 +225,21 @@ def and_builder(variables: dict[str, set[str]]) -> list[str]:
     return prop_string_list
 
 
-def main(input_filename: str) -> None:
-    """Main function to orchestrate the RDF generation process.
+def main(input_folder: str) -> None:
+    """Main function to orchestrate the RDF generation process for all files in a folder.
 
     Parameters
     ----------
-    input_filename : str
-        The relative path to the file containing structured information (either csv or yml).
+    input_folder : str
+        The path to the folder containing the structured information files (either csv or yml).
     """
-    files_variables = convert_to_variables(input_filename)
+    files_variables = {}
+    for filename in os.listdir(input_folder):
+        if filename.endswith(".csv") or filename.endswith(".yml"):
+            file_path = os.path.join(input_folder, filename)
+            file_variables = convert_to_variables(file_path)
+            files_variables.update(file_variables)
+
     shapes_graph.serialize(destination="shapeswithoutand.ttl", format="turtle")
     with open("shapeswithoutand.ttl", "a") as file:
         for and_statement in and_builder(files_variables):
@@ -241,8 +247,7 @@ def main(input_filename: str) -> None:
 
     final_graph = Graph()
     final_graph.parse("shapeswithoutand.ttl", format="turtle")
-    filename_without_extension = os.path.splitext(input_filename)[0]
-    final_graph.serialize(destination=f"{filename_without_extension}.ttl", format="turtle")
+    final_graph.serialize(destination="final_shapes.ttl", format="turtle")
     os.remove("shapeswithoutand.ttl")
 
 app = typer.Typer()
