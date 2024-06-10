@@ -14,6 +14,7 @@ from rdflib import (
 import os
 import yaml
 from urllib.parse import quote
+import itertools
 
 """
 Module Name: SHACL-Maker
@@ -69,7 +70,27 @@ shapes_graph.bind("SD", SD)
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 shapes_graph.bind("skos", SKOS)
 
+def figure_out_if_input_or_output(filename: str = "File") -> str:
+    """Determines if the file is an input or output file based on the file path. 
+    Only gets called on the non-yaml files (as those contain both).
 
+    Parameters
+    ----------
+    file_path : str
+        The relative path of the file.
+
+    Returns
+    -------
+    str
+        The type of the file (input or output).
+    """
+    if "input" in filename:
+        return "InputFile"
+    elif "output" in filename:
+        return "OutputFile"
+    else:
+        return "File"
+    
 def convert_to_variables(filename: str) -> dict[str, set[str]]:
     """Takes a CSV or YAML structured file containing metadata about the required inputs of a ODTP component and converts each row/entry into variables to be used by create_triples function.
 
@@ -93,7 +114,7 @@ def convert_to_variables(filename: str) -> dict[str, set[str]]:
                 file_relative_path = row["file_relative_path"]
                 file_description = row["file_description"]
                 variable_name = row["variable_name"]
-                variable_alternative_labels = row["variable_alternative_labels"]
+                variable_alternative_labels = row["variable_alternative_labels"].split(",") if row["variable_alternative_labels"] else []
                 variable_description = row["variable_description"]
                 variable_value_example = row["variable_value_example"]
                 variable_type = row["variable_type"]
@@ -108,7 +129,8 @@ def convert_to_variables(filename: str) -> dict[str, set[str]]:
             data = yaml.safe_load(file)
             files_variables = {}
             data_input = data.get("data-input", [])
-            for entry in data_input:
+            data_output = data.get("data-output", [])
+            for entry in itertools.chain(data_input, data_output):
                 file_relative_path = entry["file_relative_path"]
                 file_description = entry["file_description"]
                 
@@ -155,10 +177,9 @@ def create_triples(file_relative_path: str, file_description: str, variable_name
     file_uri = ODTP[quote(file_relative_path)]
 
     variable_uri = URIRef(ODTP + variable_name + "Shape")
-    
     # nodeshapes (for restricting files)
     shapes_graph.add((file_uri, RDF.type, SH.NodeShape))
-    shapes_graph.add((file_uri, RDFS.subClassOf, ODTP.InputFile))
+    shapes_graph.add((file_uri, RDFS.subClassOf, ODTP.File))
     shapes_graph.add((file_uri, SH.targetNode, file_uri))
     shapes_graph.add((file_uri, SH.description, Literal(file_description, datatype=XSD.string)))
     
@@ -169,7 +190,11 @@ def create_triples(file_relative_path: str, file_description: str, variable_name
     shapes_graph.add((variable_uri, SH.name, Literal(variable_name)))
     shapes_graph.add((variable_uri, SH.path, URIRef(ODTP + variable_name)))
     shapes_graph.add((variable_uri, SKOS.example, Literal(variable_value_example)))
-    shapes_graph.add((variable_uri, SKOS.altLabel, Literal(variable_alternative_labels)))
+    if type(variable_alternative_labels) == list:
+        for label in variable_alternative_labels:
+            shapes_graph.add((variable_uri, SKOS.altLabel, Literal(label)))
+    else:
+        shapes_graph.add((variable_uri, SKOS.altLabel, Literal(variable_alternative_labels)))
 
 
 def and_builder(variables: dict[str, set[str]]) -> list[str]:
@@ -216,8 +241,8 @@ def main(input_filename: str) -> None:
 
     final_graph = Graph()
     final_graph.parse("shapeswithoutand.ttl", format="turtle")
-    #change this to use the name of the file that is fed to the script, (either input or output)
-    final_graph.serialize(destination="finalShapes.ttl", format="turtle")
+    filename_without_extension = os.path.splitext(input_filename)[0]
+    final_graph.serialize(destination=f"{filename_without_extension}.ttl", format="turtle")
     os.remove("shapeswithoutand.ttl")
 
 app = typer.Typer()

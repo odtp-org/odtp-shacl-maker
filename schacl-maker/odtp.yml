@@ -240,10 +240,62 @@ data-input:
 
 # If applicable, data-output list produced by the component
 data-output:
-  - name: dtepr.csv
-    type: csv
-    path: dtepr.csv
-    description: TBD
+  - file_relative_path: data/dtrepr.csv
+    file_description: output data file for the mobility simulator
+    variables:
+      - variable_name: index
+        variable_alternative_labels: Index,index,some index
+        variable_description: an index for the data file
+        variable_value_example: 0
+        variable_type: http://www.w3.org/2001/XMLSchema#integer
+
+      - variable_name: sequence
+        variable_alternative_labels: 
+          - sequence
+          - 
+        variable_description: a sequence number for the data file
+        variable_value_example: 0
+        variable_type: http://www.w3.org/2001/XMLSchema#string
+
+      - variable_name: location_id
+        variable_alternative_labels: 
+          - location_id
+          - 
+        variable_description: a unique identifier for the location
+        variable_value_example: 2239
+        variable_type: http://www.w3.org/2001/XMLSchema#string
+
+      - variable_name: duration
+        variable_alternative_labels: 
+          - duration
+          - 
+        variable_description: the duration of the stay at the location
+        variable_value_example: 2.0645290300945294
+        variable_type: http://www.w3.org/2001/XMLSchema#decimal
+
+      - variable_name: ori_user_id
+        variable_alternative_labels: 
+          - ori_user_id
+          - 
+        variable_description: the original user id
+        variable_value_example: 8015
+        variable_type: http://www.w3.org/2001/XMLSchema#string
+
+      - variable_name: user_id
+        variable_alternative_labels: 
+          - user_id
+          - 
+        variable_description: the user id
+        variable_value_example: 0
+        variable_type: http://www.w3.org/2001/XMLSchema#string
+
+      - variable_name: geometry
+        variable_alternative_labels: 
+          - geometry
+          - 
+        variable_description: the geometry of the location
+        variable_value_example: "POINT (8.311716846631043 47.16714347768698)"
+        variable_type: http://www.opengis.net/ont/geosparql#wktLiteral
 
 
 # If applicable, path to schemas to perform semantic validation.
