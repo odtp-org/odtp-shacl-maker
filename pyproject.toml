@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "odtp-shacl-maker"
+name = "shacl-maker"
 version = "0.0.1"
 description = "SHACL generator for odtp compatible components"
 authors = ["caviri <carlosvivarrios@gmail.com>"]
@@ -12,6 +12,7 @@ typer = "0.12.3"
 pandas = "^2.2.2"
 rdflib = "^7.0.0"
 yamlreader = "^3.0.4"
+streamlit = "1.35.0"
 
 
 [build-system]
