@@ -73,27 +73,6 @@ SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 input_shapes_graph.bind("skos", SKOS)
 output_shapes_graph.bind("skos", SKOS)
 
-def figure_out_if_input_or_output(filename: str = "File") -> str:
-    """Determines if the file is an input or output file based on the file path. 
-    Only gets called on the non-yaml files (as those contain both).
-
-    Parameters
-    ----------
-    file_path : str
-        The relative path of the file.
-
-    Returns
-    -------
-    str
-        The type of the file (input or output).
-    """
-    if "input" in filename:
-        return "InputFile"
-    elif "output" in filename:
-        return "OutputFile"
-    else:
-        return "File"
-    
 def convert_to_variables(filename: str, filetype:str ) -> dict[str, set[str]]:
     """Takes a CSV or YAML structured file containing metadata about the required inputs of a ODTP component and converts each row/entry into variables to be used by create_triples function.
 
